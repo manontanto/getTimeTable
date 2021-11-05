@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+# getTimeTable
+#
+# manontanto
+'''
+    東急東横線渋谷駅の下りの時刻表を入手する
+    平日と土日祝日のものが取得される
+    急行などの種別は考慮していない
+    出力はstdout。Fileが必要ならリダイレクトする
+'''
+
+import requests
+import bs4
+from datetime import datetime
+
+UpDn = "1"  # 上り: '0', 下り: '1'
+stCode = "00003544" # 駅コード
+rrCode = "00000790" # 会社路線コード
+rrName = "東急東横線"
+
+url = "https://transfer.navitime.biz/tokyu/pc/diagram/TrainDiagram?stCd=" + stCode +\
+"&rrCd=" + rrCode + "&updown=" + UpDn
+
+def dispTimeTable(l_soup, Dt):
+    if Dt == "平日":
+        Daytype = "weekday"
+        Bias = 0
+    else:
+        Daytype = "saturday"
+        Bias = 20  # 40 for sunday, but same.
+
+    if UpDn == "1":
+        UD = "下り"
+    else:
+        UD = "上り"
+    
+    stName = l_soup.select('.nodeName')[0].string
+    nowT = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print("MeguroTimeTable = {") 
+    print(f'"{stCode}_{Daytype}_{UpDn}": ' + "{" + f'"title": "{rrName} {stName}駅 {Dt} {UD} 時刻表  取得日時: {nowT}",', end='')
+    hourdt = l_soup.select(f'#diagram-table-{Daytype} > dl > dt > div')
+    timedt = l_soup.select('dd')  # timedt:['00','09','21',...]
+    for i in range(0,20):
+        h = int(hourdt[i * 2].string)
+#        print(f'{h:02}', end=': ')
+        print(f'{h}', end=':[') # For Dic data, ommit '02'
+        t = [ ]
+        for l in timedt[i + Bias].select('.minute'):
+#            t.append(l.string)
+            m = l.string
+            t.append(int(m)) # t:[5,9,21,...]
+        print(*t, sep=",", end="],")
+    print("}")
+    print("")
+
+def main():
+    res = requests.get(url)
+    res.raise_for_status()
+    exp_soup = bs4.BeautifulSoup(res.text, 'html.parser')
+    dispTimeTable(exp_soup, "平日")
+    dispTimeTable(exp_soup, "土日祝")
+
+if __name__ == '__main__':
+    main()
