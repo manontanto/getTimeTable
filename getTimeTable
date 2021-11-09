@@ -7,44 +7,44 @@
     出力は'TimeTable.pkl'
 '''
 import os
-import requests
-import bs4
 from datetime import datetime
 import re
 import pickle
+import requests
+import bs4
 
-stCode = "00003544" # 駅コード
-rrCode = "00000790" # 会社路線コード
-rrName = "東急東横線"
-TableFileName = "./TimeTable.pkl"
+stCode = '00003544' # 駅コード
+rrCode = '00000790' # 会社路線コード
+rrName = '東急東横線'
+TableFileName = './TimeTable.pkl'
 url = "https://transfer.navitime.biz/tokyu/pc/diagram/TrainDiagram?stCd=" +\
         f"{stCode}&rrCd={rrCode}&updown="
 
 def MkTimeTable(Dt, UpDn):
+    if Dt == '平日':
+        Daytype = 'weekday'
+        Bias = 0
+    else:
+        Daytype = 'saturday'
+        Bias = 20  # 40 for sunday, but same.
+
+    if UpDn == '1':
+        UD = '下り'
+    else:
+        UD = '上り'
+
     res = requests.get(url + UpDn)
     res.raise_for_status()
     exp_soup = bs4.BeautifulSoup(res.text, 'html.parser')
-    if Dt == "平日":
-        Daytype = "weekday"
-        Bias = 0
-    else:
-        Daytype = "saturday"
-        Bias = 20  # 40 for sunday, but same.
-
-    if UpDn == "1":
-        UD = "下り"
-    else:
-        UD = "上り"
-    
     stName = exp_soup.select('.nodeName')[0].string
-    nowT = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    nowT = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"Now writing: {stName} {Daytype} {UpDn}")
 
     hourdt = exp_soup.select(f'#diagram-table-{Daytype} > dl > dt > div')
     timedt = exp_soup.select('dd')
     tt = {}
     TableName = f"{stCode}_{Daytype}_{UpDn}"
-    tt = {TableName : {"title" : f"{rrName} {stName}駅 {Dt}{UD}時刻表  取得日時: {nowT}"}}
+    tt = {TableName : {'title' : f"{rrName} {stName}駅 {Dt}{UD}時刻表  取得日時: {nowT}"}}
     for i in range(0,20):
         h = int(hourdt[i * 2].string)
         t = [ ]
@@ -55,21 +55,19 @@ def MkTimeTable(Dt, UpDn):
                 t.append(n)
             tt[TableName][h] = t
     if os.path.isfile(TableFileName):
-#        with open(TableFileName + 'new', 'wb') as tf:
-#            pickle.dump(tt, tf)
         with open(TableFileName, 'rb') as f:
             TmTbl = pickle.load(f)
         tt.update(TmTbl)
         with open(TableFileName, 'wb') as tf:
             pickle.dump(tt, tf)
     else:
-        print(f"{TableTileName} not exist.")
+        print(f"{TableFileName} not exist.")
 
 def main():
-#    MkTimeTable("平日", "0") # 渋谷駅では上りはない
-#    MkTimeTable("土日祝", "0")
-    MkTimeTable("平日", "1")
-    MkTimeTable("土日祝", "1")
+#    MkTimeTable('平日', '0') # 渋谷駅では上りはない
+#    MkTimeTable('土日祝', '0')
+    MkTimeTable('平日', '1')
+    MkTimeTable('土日祝', '1')
 
 if __name__ == '__main__':
     main()
