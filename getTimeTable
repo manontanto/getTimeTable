@@ -4,56 +4,23 @@
 # manontanto
 '''
     東急東横線渋谷駅の時刻表を入手する
-    出力はstdout。Fileが必要ならリダイレクトする
+    出力は'TimeTable.pkl'
 '''
-
+import os
 import requests
 import bs4
 from datetime import datetime
 import re
-import pprint
+import pickle
 
 stCode = "00003544" # 駅コード
 rrCode = "00000790" # 会社路線コード
 rrName = "東急東横線"
-rrName = "東急東横線"
-
+TableFileName = "./TimeTable.pkl"
 url = "https://transfer.navitime.biz/tokyu/pc/diagram/TrainDiagram?stCd=" +\
         f"{stCode}&rrCd={rrCode}&updown="
 
-def RelaxTimeTable(tt_soup, DayT, Bias):
-    hourdt = tt_soup.select(f'#diagram-table-{DayT} > dl > dt > div')
-    timedt = tt_soup.select('dd')
-    tt = {}
-    for i in range(0,20):
-        h = int(hourdt[i * 2].string)
-        t = [ ]
-        for l in timedt[i + Bias].select('.speak-only'):
-            for m in l:
-                n = re.sub('\n|はつ| |（神奈川県）', '', m)
-                n = re.sub('各停', '各駅停車', n)
-                t.append(n)
-            tt[h] = t
-
-    pprint.pprint(tt, width=120, compact=True)
-
-def PackedTimeTable(tt_soup, DayT, Bias):
-    hourdt = tt_soup.select(f'#diagram-table-{DayT} > dl > dt > div')
-    timedt = tt_soup.select('dd')
-    for i in range(0,20):
-        h = int(hourdt[i * 2].string)
-        print(f'{h}', end=':[')
-        t = [ ]
-        for l in timedt[i + Bias].select('.speak-only'):
-            for m in l:
-                n = re.sub('\n|はつ| |（神奈川県）', '', m)
-                n = re.sub('各停', '各駅停車', n)
-                t.append(f"'{n}'")
-        print(*t, sep=",", end="],")
-    print("}")
-    print("")
-
-def DispTimeTable(Dt, UpDn):
+def MkTimeTable(Dt, UpDn):
     res = requests.get(url + UpDn)
     res.raise_for_status()
     exp_soup = bs4.BeautifulSoup(res.text, 'html.parser')
@@ -71,16 +38,38 @@ def DispTimeTable(Dt, UpDn):
     
     stName = exp_soup.select('.nodeName')[0].string
     nowT = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print("MeguroTimeTable = {") 
-    print(f'"{stCode}_{Daytype}_{UpDn}": ' + "{" + f'"title": "{rrName} {stName}駅 {Dt} {UD} 時刻表  取得日時: {nowT}",', end='')
-    RelaxTimeTable(exp_soup, Daytype, Bias) # ゆったり出力版
-#    PackedTimeTable(exp_soup, Daytype, Bias) # 詰めて出力版
+    print(f"Now writing: {stName} {Daytype} {UpDn}")
+
+    hourdt = exp_soup.select(f'#diagram-table-{Daytype} > dl > dt > div')
+    timedt = exp_soup.select('dd')
+    tt = {}
+    TableName = f"{stCode}_{Daytype}_{UpDn}"
+    tt = {TableName : {"title" : f"{rrName} {stName}駅 {Dt}{UD}時刻表  取得日時: {nowT}"}}
+    for i in range(0,20):
+        h = int(hourdt[i * 2].string)
+        t = [ ]
+        for l in timedt[i + Bias].select('.speak-only'):
+            for m in l:
+                n = re.sub('\n|はつ| |（神奈川県）', '', m)
+                n = re.sub('各停', '各駅停車', n)
+                t.append(n)
+            tt[TableName][h] = t
+    if os.path.isfile(TableFileName):
+#        with open(TableFileName + 'new', 'wb') as tf:
+#            pickle.dump(tt, tf)
+        with open(TableFileName, 'rb') as f:
+            TmTbl = pickle.load(f)
+        tt.update(TmTbl)
+        with open(TableFileName, 'wb') as tf:
+            pickle.dump(tt, tf)
+    else:
+        print(f"{TableTileName} not exist.")
 
 def main():
-#    DispTimeTable("平日", "0") # 渋谷駅では上りはない
-    DispTimeTable("平日", "1")
-#    DispTimeTable("土日祝", "0")
-    DispTimeTable("土日祝", "1")
+#    MkTimeTable("平日", "0") # 渋谷駅では上りはない
+#    MkTimeTable("土日祝", "0")
+    MkTimeTable("平日", "1")
+    MkTimeTable("土日祝", "1")
 
 if __name__ == '__main__':
     main()
