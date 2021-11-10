@@ -7,6 +7,7 @@
     出力は'TimeTable.pkl'
 '''
 import os
+from pathlib import Path
 from datetime import datetime
 import re
 import pickle
@@ -54,14 +55,18 @@ def MkTimeTable(Dt, UpDn):
                 n = re.sub('各停', '各駅停車', n)
                 t.append(n)
             tt[TableName][h] = t
-    if os.path.isfile(TableFileName):
-        with open(TableFileName, 'rb') as f:
+
+    TBfile = Path(TableFileName)
+    TBfile.touch(exist_ok=True)
+    with open(TableFileName, 'rb') as f:
+        try:
             TmTbl = pickle.load(f)
-        tt.update(TmTbl)
-        with open(TableFileName, 'wb') as tf:
-            pickle.dump(tt, tf)
-    else:
-        print(f"{TableFileName} not exist.")
+        except EORError:
+            TmTbl = {}
+            pass
+    tt.update(TmTbl)
+    with open(TableFileName, 'wb') as tf:
+        pickle.dump(tt, tf)
 
 def main():
 #    MkTimeTable('平日', '0') # 渋谷駅では上りはない
