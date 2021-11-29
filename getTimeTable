@@ -61,7 +61,7 @@ def MkTimeTable(Dt, UpDn):
     with open(TableFileName, 'rb') as f:
         try:
             TmTbl = pickle.load(f)
-        except EORError:
+        except EOFError:
             TmTbl = {}
             pass
     tt.update(TmTbl)
