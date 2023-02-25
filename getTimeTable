@@ -53,6 +53,9 @@ def MkTimeTable(Dt, UpDn):
             for m in l:
                 n = re.sub('\n| |（神奈川県）', '', m)
                 n = re.sub('各停', '各駅停車', n)
+                n = re.sub('いき', '行き', n)
+                n = re.sub('とうえきしはつ', '当駅始発', n)
+                n = re.sub('はつ', '発', n)
                 t.append(n)
             tt[TableName][h] = t
 
