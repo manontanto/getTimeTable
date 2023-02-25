@@ -51,7 +51,7 @@ def MkTimeTable(Dt, UpDn):
         t = [ ]
         for l in timedt[i + Bias].select('.speak-only'):
             for m in l:
-                n = re.sub('\n|はつ| |（神奈川県）', '', m)
+                n = re.sub('\n| |（神奈川県）', '', m)
                 n = re.sub('各停', '各駅停車', n)
                 t.append(n)
             tt[TableName][h] = t
