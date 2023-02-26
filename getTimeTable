@@ -6,7 +6,6 @@
     東急東横線渋谷駅の時刻表を入手する
     出力は'TimeTable.pkl'
 '''
-import os
 from pathlib import Path
 from datetime import datetime
 import re
@@ -66,7 +65,6 @@ def MkTimeTable(Dt, UpDn):
             TmTbl = pickle.load(f)
         except EOFError:
             TmTbl = {}
-            pass
     tt.update(TmTbl)
     with open(TableFileName, 'wb') as tf:
         pickle.dump(tt, tf)
